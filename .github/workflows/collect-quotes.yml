@@ -1,0 +1,32 @@
+name: recolha-quotes
+
+on:
+  schedule:
+    # Todos os dias às 05:15 UTC
+    - cron: "15 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar backend
+        working-directory: backend
+        run: pip install --no-cache-dir ".[dev]"
+
+      - name: Recolher e registar cotações
+        working-directory: backend
+        env:
+          QUOTES_API_URL: ${{ secrets.QUOTES_API_URL }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          QUOTES_PROVIDERS: ${{ secrets.QUOTES_PROVIDERS || 'wise' }}
+        run: python -m app.collectors.run --api "$QUOTES_API_URL" --token "$ADMIN_TOKEN" --providers "$QUOTES_PROVIDERS"
