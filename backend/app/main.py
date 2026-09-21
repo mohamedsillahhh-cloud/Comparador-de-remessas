@@ -11,6 +11,13 @@ from app.seed import seed_providers
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    settings = get_settings()
+    if settings.admin_token == "dev-admin-token":
+        print(
+            "AVISO: ADMIN_TOKEN é o valor predefinido de desenvolvimento. "
+            "Define um token forte em produção.",
+            flush=True,
+        )
     with SessionLocal() as session:
         seed_providers(session)
     yield

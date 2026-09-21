@@ -1,6 +1,13 @@
 import type { Meta, Provider, Quote, Verification, VerificationInput } from "./types";
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000";
+const configuredBase = import.meta.env.VITE_API_URL as string | undefined;
+const BASE =
+  configuredBase ??
+  (import.meta.env.DEV
+    ? "http://localhost:8000"
+    : (() => {
+        throw new Error("VITE_API_URL não definida em produção");
+      })());
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${BASE}${path}`, init);

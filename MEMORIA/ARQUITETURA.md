@@ -42,14 +42,21 @@ docs/        runbook de verificação manual
 - `backend/app/collectors/`: módulo por provedor (base + wise). `Collector.collect() -> CollectorResult`
   (montantes + URL fonte + notas). Base de dados de `verifications.source` = `manual|auto`.
 - Guardas: montante inválido é omitido; sem montantes válidos -> `CollectorError` (round não criada);
-  round iguais à última são ignoradas (dedup).
+  round iguais à última são ignoradas (dedup). Opções de pagamento `disabled` da Wise são ignoradas;
+  payload não-dict (ex.: resposta vinda como lista) é ignorado e indica `CollectorError`.
 - Runner: `python -m app.collectors.run --api <URL> --token <ADMIN_TOKEN> [--providers wise]` — resolve
   providers, compara com a última round e faz POST em `POST /api/admin/verifications` com `source="auto"`.
-  Exit 0 se houve nova round ou sem alterações; 1 se tudo falhou.
-- Wise: `POST https://api.wise.com/2026Q3/quotes` (sem auth), método padrão `BANK_TRANSFER` (SWIFT);
-  `received = (montante - comissão) * taxa`. Remitly e restantes: manuais (simuladores sem acesso público).
+  Exit 0 se houve nova round ou sem alterações; 1 se tudo falhou. Falhas de API/auth são reportadas de
+  forma limpa (exit 1); erros inesperados por provedor são registados como `[falha]` sem interromper o
+  processo nem inventar dados.
+- Wise: `POST https://api.wise.com/2026Q3/quotes` (sem auth). A fórmula `(montante - comissão) * taxa`
+  foi validada contra o campo `targetAmount` da própria API (iguais nos 5 montantes de referência).
+  Método padrão `BANK_TRANSFER` (SWIFT), com fallback para a primeira opção ativa. Remitly e restantes:
+  manuais (simuladores sem acesso público).
 - CI: `.github/workflows/collect-quotes.yml` — cron diário 05:15 UTC, secrets `QUOTES_API_URL` + `ADMIN_TOKEN`
   (pode disparar manualmente com `workflow_dispatch`).
+- Frontend produção: `VITE_API_URL` obrigatória (sem fallback para localhost em prod); aviso de arranque
+  quando `ADMIN_TOKEN` é o default de dev.
 
 ## Como correr (dev)
 

@@ -28,7 +28,7 @@ export default function App() {
       </header>
       <main>{isAdmin ? <Admin /> : <Calculator />}</main>
       <footer className="footer">
-        Valores indicativos, atualizados manualmente. Confirma sempre no site do provedor antes de enviar.
+        Valores indicativos, verificados manualmente e por recolha automática. Confirma sempre no site do provedor antes de enviar.
       </footer>
     </div>
   );

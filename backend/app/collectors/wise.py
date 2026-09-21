@@ -40,15 +40,18 @@ def _to_decimal(value: object) -> Decimal | None:
 
 def _payment_option(data: dict) -> dict | None:
     options = data.get("paymentOptions") or []
-    if not options:
+    active = [option for option in options if not option.get("disabled")]
+    if not active:
         return None
-    for option in options:
+    for option in active:
         if option.get("payIn") == "BANK_TRANSFER":
             return option
-    return options[0]
+    return active[0]
 
 
-def _point_from_quote(data: dict, amount_eur: Decimal) -> PointData | None:
+def _point_from_quote(data: object, amount_eur: Decimal) -> PointData | None:
+    if not isinstance(data, dict):
+        return None
     rate = _to_decimal(data.get("rate"))
     if rate is None or rate <= 0:
         return None

@@ -1,8 +1,8 @@
 # Runbook — Verificação manual de cotações
 
-As cotações não são obtidas automaticamente no MVP. Cada ronda é verificada à mão e
-registada no admin. Este documento define o procedimento para que os valores sejam
-comparáveis entre provedores.
+A recolha é **híbrida**: a Wise é recolhida automaticamente (API pública, `source="auto"`), mas os
+restantes provedores ainda são verificados à mão e registados no admin. Este documento define o
+procedimento manual para que os valores sejam comparáveis entre provedores.
 
 ## Princípios
 

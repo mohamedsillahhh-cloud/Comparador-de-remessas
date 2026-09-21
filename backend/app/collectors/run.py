@@ -22,20 +22,29 @@ from app.collectors.wise import WiseCollector
 
 COLLECTORS: dict[str, Collector] = {c.slug: c for c in (WiseCollector(),)}
 
-headers = {"X-Admin-Token": ""}
 
-
-def _request(http: httpx.Client, method: str, api: str, path: str, *, json=None) -> list | None:
+def _request(
+    http: httpx.Client, method: str, api: str, path: str, *, token: str, json=None
+) -> list | None:
     response = http.request(
-        method, f"{api.rstrip('/')}{path}", headers=headers, json=json
+        method,
+        f"{api.rstrip('/')}{path}",
+        headers={"X-Admin-Token": token},
+        json=json,
     )
     response.raise_for_status()
     return response.json()
 
 
-def _latest_points(http: httpx.Client, api: str, provider_id: int) -> set[tuple[float, float]] | None:
+def _latest_points(
+    http: httpx.Client, api: str, provider_id: int, token: str
+) -> set[tuple[float, float]] | None:
     data = _request(
-        http, "GET", api, f"/api/admin/verifications?provider_id={provider_id}&limit=1"
+        http,
+        "GET",
+        api,
+        f"/api/admin/verifications?provider_id={provider_id}&limit=1",
+        token=token,
     )
     if not data:
         return None
@@ -70,8 +79,13 @@ def collect_rounds(
 
     try:
         session = http or httpx.Client(timeout=30)
-        headers.update({"X-Admin-Token": token})
-        registered = _request(session, "GET", api, "/api/admin/providers")
+        try:
+            registered = _request(
+                session, "GET", api, "/api/admin/providers", token=token
+            )
+        except httpx.HTTPError as exc:
+            print(f"[falha] API inacessível ou autenticação falhou: {exc}")
+            return 1
         by_slug = {p["slug"]: p for p in registered}
 
         for slug in providers:
@@ -89,12 +103,16 @@ def collect_rounds(
             except CollectorError as exc:
                 print(f"[falha] {slug}: {exc}")
                 continue
+            except Exception as exc:
+                print(f"[falha] {slug}: recolha devolveu algo inesperado "
+                      f"({exc.__class__.__name__}: {exc}); sem dados registados")
+                continue
             if not result.points:
                 print(f"[falha] {slug}: recolha devolveu zero pontos")
                 continue
 
             current = {(float(p.amount_eur), float(p.received_cve)) for p in result.points}
-            if _latest_points(session, api, provider["id"]) == current:
+            if _latest_points(session, api, provider["id"], token) == current:
                 print(f"[sem alterações] {slug}")
                 unchanged += 1
                 continue
@@ -108,7 +126,9 @@ def collect_rounds(
                 "points": [_point_payload(p) for p in result.points],
             }
             try:
-                _request(session, "POST", api, "/api/admin/verifications", json=payload)
+                _request(
+                    session, "POST", api, "/api/admin/verifications", token=token, json=payload
+                )
             except httpx.HTTPError as exc:
                 print(f"[falha] {slug}: ao registar ronda: {exc}")
                 continue
